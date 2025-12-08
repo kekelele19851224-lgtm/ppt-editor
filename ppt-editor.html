@@ -1,51 +1,131 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PPT编辑器</title>
-<style>
-html,body{width:100%;height:100%}
-#app{width:100%;height:100%;position:fixed;top:0;left:0}
-.topbar{position:fixed;top:0;left:0;right:0;height:44px;display:flex;align-items:center;justify-content:space-between;background:#111;color:#fff;z-index:10;padding:0 12px}
-.btn{display:inline-flex;align-items:center;justify-content:center;height:30px;padding:0 12px;border-radius:6px;background:#2b2b2b;color:#fff}
-.content{position:absolute;top:44px;left:0;right:0;bottom:0}
-.iframe{border:0;width:100%;height:100%}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PPT编辑器</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    .container { width: 100%; height: 100%; display: flex; flex-direction: column; }
+    .topbar { 
+      height: 44px; 
+      background: #1a1a1a; 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      padding: 0 12px;
+      flex-shrink: 0;
+    }
+    .title { color: #fff; font-size: 16px; }
+    .btn-back { 
+      background: #3b82f6; 
+      color: #fff; 
+      border: none; 
+      padding: 6px 12px; 
+      border-radius: 4px; 
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .content { flex: 1; width: 100%; overflow: hidden; }
+    .iframe { width: 100%; height: 100%; border: none; }
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      font-size: 16px;
+      color: #666;
+    }
+  </style>
 </head>
 <body>
-<div class="topbar">
-<div id="title">Docmee PPT</div>
-<div id="back" class="btn">返回小程序</div>
-</div>
-<div class="content">
-<div id="app"></div>
-</div>
-<script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
-<script src="https://docmee.cn/sdk/docmee-ui.umd.js"></script>
-<script>
-function q(){var p={},s=location.search.slice(1).split('&');for(var i=0;i<s.length;i++){if(!s[i])continue;var t=s[i].split('=');p[decodeURIComponent(t[0])]=decodeURIComponent(t[1]||'')}return p}
-var params=q();
-var token=params.token||'';
-var subject=params.subject||'';
-var templateId=params.templateId||'';
-var pptId=params.pptId||'';
-var mode=params.mode||'create';
-document.getElementById('title').innerText=mode==='edit'?'编辑PPT':'生成PPT';
-document.getElementById('back').onclick=function(){if(window.wx&&wx.miniProgram&&wx.miniProgram.navigateBack){wx.miniProgram.navigateBack()}else{history.back()}};
-var mount=document.getElementById('app');
-if(typeof DocmeeUI!=='undefined'){
-var ui=new DocmeeUI({container:'app',token:token});
-if(mode==='edit'&&pptId){ui.open&&ui.open({id:pptId})}
-else{ui.generate&&ui.generate({subject:subject,templateId:templateId})}
-}else{
-var url='https://docmee.cn/open-platform/ui-sdk?token='+encodeURIComponent(token)+(mode==='edit'?'&pptId='+encodeURIComponent(pptId)+'&mode=edit':'&subject='+encodeURIComponent(subject)+'&templateId='+encodeURIComponent(templateId)+'&mode=create');
-var ifr=document.createElement('iframe');
-ifr.className='iframe';
-ifr.src=url;
-mount.appendChild(ifr);
-}
-window.addEventListener('message',function(e){var data=e&&e.data?e.data:{};if(!data)return;});
-</script>
+  <div class="container">
+    <div class="topbar">
+      <span class="title" id="title">生成PPT</span>
+      <button class="btn-back" id="backBtn">返回小程序</button>
+    </div>
+    <div class="content" id="content">
+      <div class="loading" id="loading">加载中...</div>
+    </div>
+  </div>
+
+  <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+  <script>
+    // 解析 URL 参数
+    function getParams() {
+      var params = {};
+      var search = location.search.slice(1).split('&');
+      for (var i = 0; i < search.length; i++) {
+        if (!search[i]) continue;
+        var pair = search[i].split('=');
+        params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+      }
+      return params;
+    }
+
+    var params = getParams();
+    var token = params.token || '';
+    var subject = params.subject || '';
+    var templateId = params.templateId || '';
+    var pptId = params.pptId || '';
+    var mode = params.mode || 'create';
+
+    // 设置标题
+    document.getElementById('title').innerText = mode === 'edit' ? '编辑PPT' : '生成PPT';
+
+    // 返回按钮
+    document.getElementById('backBtn').onclick = function() {
+      if (window.wx && wx.miniProgram && wx.miniProgram.navigateBack) {
+        wx.miniProgram.navigateBack();
+      } else {
+        history.back();
+      }
+    };
+
+    // 构建 iframe URL
+    // 使用 Docmee 官方提供的 UI 嵌入方式
+    var baseUrl = 'https://docmee.cn';
+    var iframeUrl = '';
+
+    if (mode === 'edit' && pptId) {
+      // 编辑模式
+      iframeUrl = baseUrl + '/p/' + pptId + '?token=' + encodeURIComponent(token);
+    } else {
+      // 创建模式 - 直接进入创建页面
+      iframeUrl = baseUrl + '/create?token=' + encodeURIComponent(token);
+      if (subject) {
+        iframeUrl += '&subject=' + encodeURIComponent(subject);
+      }
+      if (templateId) {
+        iframeUrl += '&templateId=' + encodeURIComponent(templateId);
+      }
+    }
+
+    // 创建 iframe
+    var content = document.getElementById('content');
+    var iframe = document.createElement('iframe');
+    iframe.className = 'iframe';
+    iframe.src = iframeUrl;
+    iframe.onload = function() {
+      document.getElementById('loading').style.display = 'none';
+    };
+    content.innerHTML = '';
+    content.appendChild(iframe);
+
+    // 监听来自 iframe 的消息
+    window.addEventListener('message', function(e) {
+      if (!e || !e.data) return;
+      var data = e.data;
+      console.log('收到消息:', data);
+      
+      // 处理生成完成等事件
+      if (data.type === 'generateComplete' || data.type === 'close') {
+        if (window.wx && wx.miniProgram) {
+          wx.miniProgram.navigateBack();
+        }
+      }
+    });
+  </script>
 </body>
 </html>
