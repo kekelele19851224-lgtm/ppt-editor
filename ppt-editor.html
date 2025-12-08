@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>PPT编辑器</title>
+  <script src="https://cdn.jsdelivr.net/gh/docmee/aippt-ui-iframe@main/static/docmee-ui-sdk-iframe.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; }
@@ -27,15 +28,10 @@
       font-size: 14px;
       cursor: pointer;
     }
-    .content { flex: 1; width: 100%; overflow: hidden; }
-    .iframe { width: 100%; height: 100%; border: none; }
-    .loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      font-size: 16px;
-      color: #666;
+    #ppt-container { 
+      flex: 1; 
+      width: 100%; 
+      overflow: hidden;
     }
   </style>
 </head>
@@ -45,9 +41,7 @@
       <span class="title" id="title">生成PPT</span>
       <button class="btn-back" id="backBtn">返回小程序</button>
     </div>
-    <div class="content" id="content">
-      <div class="loading" id="loading">加载中...</div>
-    </div>
+    <div id="ppt-container"></div>
   </div>
 
   <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
@@ -83,49 +77,43 @@
       }
     };
 
-    // 构建 iframe URL
-    // 使用 Docmee 官方提供的 UI 嵌入方式
-    var baseUrl = 'https://docmee.cn';
-    var iframeUrl = '';
-
-    if (mode === 'edit' && pptId) {
-      // 编辑模式
-      iframeUrl = baseUrl + '/p/' + pptId + '?token=' + encodeURIComponent(token);
-    } else {
-      // 创建模式 - 直接进入创建页面
-      iframeUrl = baseUrl + '/create?token=' + encodeURIComponent(token);
-      if (subject) {
-        iframeUrl += '&subject=' + encodeURIComponent(subject);
-      }
-      if (templateId) {
-        iframeUrl += '&templateId=' + encodeURIComponent(templateId);
-      }
-    }
-
-    // 创建 iframe
-    var content = document.getElementById('content');
-    var iframe = document.createElement('iframe');
-    iframe.className = 'iframe';
-    iframe.src = iframeUrl;
-    iframe.onload = function() {
-      document.getElementById('loading').style.display = 'none';
-    };
-    content.innerHTML = '';
-    content.appendChild(iframe);
-
-    // 监听来自 iframe 的消息
-    window.addEventListener('message', function(e) {
-      if (!e || !e.data) return;
-      var data = e.data;
-      console.log('收到消息:', data);
-      
-      // 处理生成完成等事件
-      if (data.type === 'generateComplete' || data.type === 'close') {
-        if (window.wx && wx.miniProgram) {
-          wx.miniProgram.navigateBack();
+    // 初始化 DocmeeUI
+    if (typeof DocmeeUI !== 'undefined' && token) {
+      var docmeeUI = new DocmeeUI({
+        token: token,
+        container: document.querySelector('#ppt-container'),
+        page: mode === 'edit' ? 'editor' : 'creator',
+        pptId: mode === 'edit' ? pptId : null,
+        lang: 'zh',
+        mode: 'light',
+        isMobile: true,
+        background: '#ffffff',
+        padding: '0',
+        onMessage: function(message) {
+          console.log('DocmeeUI message:', message);
+          if (message.type === 'invalid-token') {
+            console.log('Token 失效');
+            alert('登录已过期，请返回重试');
+          } else if (message.type === 'error') {
+            console.log('错误:', message.data);
+            if (message.data && message.data.message) {
+              alert(message.data.message);
+            }
+          }
         }
+      });
+
+      // 如果是创建模式且有主题，自动填入主题
+      if (mode === 'create' && subject) {
+        setTimeout(function() {
+          docmeeUI.changeCreatorData && docmeeUI.changeCreatorData({ subject: subject }, false);
+        }, 1000);
       }
-    });
+    } else if (!token) {
+      document.getElementById('ppt-container').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#999;">缺少 token 参数</div>';
+    } else {
+      document.getElementById('ppt-container').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#999;">SDK 加载失败</div>';
+    }
   </script>
 </body>
 </html>
