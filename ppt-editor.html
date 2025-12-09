@@ -2,78 +2,61 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>PPT编辑器</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试 Type 7</title>
   <script src="./docmee-ui-sdk-iframe.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; }
-    .container { width: 100%; height: 100%; display: flex; flex-direction: column; }
-    .topbar { 
-      height: 44px; 
-      background: #1a1a1a; 
-      display: flex; 
-      align-items: center; 
-      justify-content: space-between; 
-      padding: 0 12px;
-      flex-shrink: 0;
-    }
-    .title { color: #fff; font-size: 16px; }
-    .btn-back { 
-      background: #3b82f6; 
-      color: #fff; 
-      border: none; 
-      padding: 6px 12px; 
-      border-radius: 4px; 
-      font-size: 14px;
-      cursor: pointer;
-    }
-    #ppt-container { 
-      flex: 1; 
-      width: 100%; 
-      overflow: hidden;
-    }
+    html, body { width: 100%; height: 100%; }
+    #ppt-container { width: 100%; height: 100%; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="topbar">
-      <span class="title" id="title">生成PPT</span>
-      <button class="btn-back" id="backBtn">返回小程序</button>
-    </div>
-    <div id="ppt-container"></div>
-  </div>
+  <div id="ppt-container"></div>
 
-  <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
   <script>
-    function getParams(){var p={},s=location.search.slice(1).split('&');for(var i=0;i<s.length;i++){if(!s[i])continue;var t=s[i].split('=');p[decodeURIComponent(t[0])]=decodeURIComponent(t[1]||'')}return p}
-    var params=getParams();
-    var token=params.token||'';
-    var subject=params.subject||'';
-    var templateId=params.templateId||'';
-    var pptId=params.pptId||'';
-    var mode=params.mode||'create';
-    document.getElementById('title').innerText=mode==='edit'?'编辑PPT':'生成PPT';
-    document.getElementById('backBtn').onclick=function(){if(window.wx&&wx.miniProgram&&wx.miniProgram.navigateBack){wx.miniProgram.navigateBack()}else{history.back()}};
-    function initDocmeeUI(outline,tplId){
-      if(typeof DocmeeUI==='undefined'){document.getElementById('ppt-container').innerHTML='<div class="loading">SDK 加载失败</div>';return}
-      if(!token){document.getElementById('ppt-container').innerHTML='<div class="loading">缺少 token 参数</div>';return}
-      document.getElementById('ppt-container').innerHTML='';
-      var config={
+    // TODO: 填入你的 token
+    var token = 'sk_FMGz7I5FsT5rEqqArk';
+    
+    var testOutline = `# 心理健康教育
+
+## 1 认识心理健康
+### 1.1 心理健康的定义
+### 1.2 心理健康的重要性
+
+## 2 常见心理问题
+### 2.1 压力与情绪管理
+### 2.2 焦虑和抑郁
+
+## 3 维护心理健康
+### 3.1 情绪管理技巧
+### 3.2 寻求专业帮助
+`;
+
+    console.log('Token:', token ? '已设置' : '未设置');
+    console.log('大纲长度:', testOutline.length);
+
+    if (typeof DocmeeUI !== 'undefined' && token) {
+      var docmeeUI = new DocmeeUI({
         token: token,
         container: document.querySelector('#ppt-container'),
-        lang:'zh',mode:'light',isMobile:true,background:'#ffffff',padding:'0',
-        creatorVersion:'v2',
-        onMessage:function(message){console.log('DocmeeUI message:',message)}
-      };
-      if(mode==='edit'&&pptId){config.page='editor';config.pptId=pptId}
-      else if(outline){config.page='creator';config.creatorData={content:outline,type:7}}
-      else{config.page='creator'}
-      try{var ui=new DocmeeUI(config);window.docmeeUI=ui}catch(err){console.error('DocmeeUI 初始化失败:',err);document.getElementById('ppt-container').innerHTML='<div class="loading">初始化失败: '+err.message+'</div>'}
+        page: 'creator',
+        creatorVersion: 'v2',
+        lang: 'zh',
+        mode: 'light',
+        isMobile: false,
+        creatorData: {
+          type: 7,
+          content: testOutline
+        },
+        onMessage: function(message) {
+          console.log('DocmeeUI 事件:', message.type, message);
+        }
+      });
+      console.log('初始化成功，观察页面显示的是「选择模板」还是「输入主题」');
+    } else {
+      document.getElementById('ppt-container').innerHTML = '<div style="padding:20px;">SDK加载失败或token未设置</div>';
     }
-    var testOutline='# '+(subject||'测试主题')+'\n\n## 1 第一章节\n### 1.1 小节一\n#### 1.1.1 要点一\n#### 1.1.2 要点二\n### 1.2 小节二\n\n## 2 第二章节\n### 2.1 小节一\n### 2.2 小节二\n\n## 3 第三章节\n### 3.1 小节一\n### 3.2 小节二\n';
-    if(mode==='create'){initDocmeeUI(testOutline,templateId)}else{initDocmeeUI(null,null)}
-    window.addEventListener('message',function(e){var d=e&&e.data?e.data:{};if(!d)return;console.log('收到小程序消息:',d);if(d.type==='outline'){var outline=d.outlineMarkdown||'';var tpl=d.templateId||'';initDocmeeUI(outline,tpl)}});
   </script>
 </body>
 </html>
