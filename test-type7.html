@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试 Type 7</title>
+  <script src="./docmee-ui-sdk-iframe.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; }
+    #ppt-container { width: 100%; height: 100%; }
+  </style>
+  </head>
+<body>
+  <div id="ppt-container"></div>
+  <script>
+    // ========== 配置区域 ==========
+    // TODO: 请在这里填入有效的 token（从小程序云函数获取一个新的）
+    var token = 'sk_FMGz7I5FsT5rEqqArk';
+    // 测试用的大纲（Markdown格式）
+    var testOutline = `# 心理健康教育
+## 1 认识心理健康
+### 1.1 心理健康的定义
+### 1.2 心理健康的重要性
+## 2 常见心理问题
+### 2.1 压力与情绪管理
+### 2.2 焦虑和抑郁
+## 3 维护心理健康
+### 3.1 情绪管理技巧
+### 3.2 寻求专业帮助
+`;
+    // ========== 配置区域结束 ==========
+
+    console.log('========== 测试开始 ==========');
+    console.log('Token:', token ? '已设置' : '未设置');
+    console.log('大纲长度:', testOutline.length);
+
+    if (!token || token === '在这里填入有效的token') {
+      document.getElementById('ppt-container').innerHTML = '<div style="padding:20px;color:red;">请先在代码中填入有效的 token！</div>';
+    } else if (typeof DocmeeUI === 'undefined') {
+      document.getElementById('ppt-container').innerHTML = '<div style="padding:20px;color:red;">SDK 加载失败</div>';
+    } else {
+      console.log('开始初始化 DocmeeUI...');
+      console.log('配置: page=creator, creatorVersion=v2, type=7');
+      try {
+        var docmeeUI = new DocmeeUI({
+          token: token,
+          container: document.querySelector('#ppt-container'),
+          page: 'creator',
+          creatorVersion: 'v2',
+          lang: 'zh',
+          mode: 'light',
+          isMobile: false,
+          creatorData: {
+            type: 7, // 7 = Markdown 大纲生成
+            content: testOutline
+          },
+          onMessage: function(message) {
+            console.log('DocmeeUI 事件:', message.type, message);
+          }
+        });
+        console.log('DocmeeUI 初始化成功');
+        console.log('');
+        console.log('========== 观察结果 ==========');
+        console.log('如果看到「选择模板」页面 → type:7 成功跳过了输入主题和大纲生成！');
+        console.log('如果看到「输入主题」页面 → type:7 不支持跳过步骤');
+        console.log('================================');
+      } catch (err) {
+        console.error('初始化失败:', err);
+        document.getElementById('ppt-container').innerHTML = '<div style="padding:20px;color:red;">初始化失败: ' + err.message + '</div>';
+      }
+    }
+  </script>
+  </body>
+</html>
