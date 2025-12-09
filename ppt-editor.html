@@ -2,61 +2,49 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>测试 Type 7</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AI生成PPT</title>
   <script src="./docmee-ui-sdk-iframe.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
     #ppt-container { width: 100%; height: 100%; }
+    .loading { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 16px; color: #666; }
+    .error { color: #e74c3c; padding: 20px; text-align: center; }
   </style>
 </head>
 <body>
-  <div id="ppt-container"></div>
+  <div id="ppt-container">
+    <div class="loading">加载中...</div>
+  </div>
 
+  <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
   <script>
-    // TODO: 填入你的 token
-    var token = 'sk_FMGz7I5FsT5rEqqArk';
-    
-    var testOutline = `# 心理健康教育
-
-## 1 认识心理健康
-### 1.1 心理健康的定义
-### 1.2 心理健康的重要性
-
-## 2 常见心理问题
-### 2.1 压力与情绪管理
-### 2.2 焦虑和抑郁
-
-## 3 维护心理健康
-### 3.1 情绪管理技巧
-### 3.2 寻求专业帮助
-`;
-
-    console.log('Token:', token ? '已设置' : '未设置');
-    console.log('大纲长度:', testOutline.length);
-
-    if (typeof DocmeeUI !== 'undefined' && token) {
-      var docmeeUI = new DocmeeUI({
+    function getParams(){var p={},s=location.search.slice(1).split('&');for(var i=0;i<s.length;i++){if(!s[i])continue;var t=s[i].split('=');p[decodeURIComponent(t[0])]=decodeURIComponent(t[1]||'')}return p}
+    var params=getParams();
+    var token=params.token||'';
+    var pptId=params.pptId||'';
+    var mode=params.mode||'create';
+    function init(){
+      if(typeof DocmeeUI==='undefined'){document.getElementById('ppt-container').innerHTML='<div class="error">SDK 加载失败，请刷新重试</div>';return}
+      if(!token){document.getElementById('ppt-container').innerHTML='<div class="error">缺少 token 参数</div>';return}
+      document.getElementById('ppt-container').innerHTML='';
+      var config={
         token: token,
         container: document.querySelector('#ppt-container'),
-        page: 'creator',
-        creatorVersion: 'v2',
-        lang: 'zh',
-        mode: 'light',
-        isMobile: false,
-        creatorData: {
-          type: 7,
-          content: testOutline
-        },
-        onMessage: function(message) {
+        lang:'zh',mode:'light',isMobile:true,background:'#f5f5f5',padding:'0',
+        creatorVersion:'v2',
+        onMessage:function(message){
           console.log('DocmeeUI 事件:', message.type, message);
+          if(message.type==='invalid-token'){alert('登录已过期，请返回重试');if(window.wx&&wx.miniProgram){wx.miniProgram.navigateBack();}}
+          if(message.type==='error'){console.error('错误:',message.data);if(message.data&&message.data.code===88){alert('生成次数已用完')}}
+          if(message.type==='afterGenerate'){console.log('PPT 生成完成，ID:', message.data&&message.data.id)}
         }
-      });
-      console.log('初始化成功，观察页面显示的是「选择模板」还是「输入主题」');
-    } else {
-      document.getElementById('ppt-container').innerHTML = '<div style="padding:20px;">SDK加载失败或token未设置</div>';
+      };
+      if(mode==='edit'&&pptId){config.page='editor';config.pptId=pptId}else{config.page='creator'}
+      try{var docmeeUI=new DocmeeUI(config);window.docmeeUI=docmeeUI}catch(err){console.error('初始化失败:',err);document.getElementById('ppt-container').innerHTML='<div class="error">初始化失败: '+err.message+'</div>'}
     }
+    init();
   </script>
 </body>
 </html>
