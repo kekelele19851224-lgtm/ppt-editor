@@ -46,74 +46,34 @@
 
   <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
   <script>
-    // 解析 URL 参数
-    function getParams() {
-      var params = {};
-      var search = location.search.slice(1).split('&');
-      for (var i = 0; i < search.length; i++) {
-        if (!search[i]) continue;
-        var pair = search[i].split('=');
-        params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
-      }
-      return params;
-    }
-
-    var params = getParams();
-    var token = params.token || '';
-    var subject = params.subject || '';
-    var templateId = params.templateId || '';
-    var pptId = params.pptId || '';
-    var mode = params.mode || 'create';
-
-    // 设置标题
-    document.getElementById('title').innerText = mode === 'edit' ? '编辑PPT' : '生成PPT';
-
-    // 返回按钮
-    document.getElementById('backBtn').onclick = function() {
-      if (window.wx && wx.miniProgram && wx.miniProgram.navigateBack) {
-        wx.miniProgram.navigateBack();
-      } else {
-        history.back();
-      }
-    };
-
-    // 初始化 DocmeeUI
-    if (typeof DocmeeUI !== 'undefined' && token) {
-      var docmeeUI = new DocmeeUI({
+    function getParams(){var p={},s=location.search.slice(1).split('&');for(var i=0;i<s.length;i++){if(!s[i])continue;var t=s[i].split('=');p[decodeURIComponent(t[0])]=decodeURIComponent(t[1]||'')}return p}
+    var params=getParams();
+    var token=params.token||'';
+    var subject=params.subject||'';
+    var templateId=params.templateId||'';
+    var pptId=params.pptId||'';
+    var mode=params.mode||'create';
+    document.getElementById('title').innerText=mode==='edit'?'编辑PPT':'生成PPT';
+    document.getElementById('backBtn').onclick=function(){if(window.wx&&wx.miniProgram&&wx.miniProgram.navigateBack){wx.miniProgram.navigateBack()}else{history.back()}};
+    function initDocmeeUI(outline,tplId){
+      if(typeof DocmeeUI==='undefined'){document.getElementById('ppt-container').innerHTML='<div class="loading">SDK 加载失败</div>';return}
+      if(!token){document.getElementById('ppt-container').innerHTML='<div class="loading">缺少 token 参数</div>';return}
+      document.getElementById('ppt-container').innerHTML='';
+      var config={
         token: token,
         container: document.querySelector('#ppt-container'),
-        page: mode === 'edit' ? 'editor' : 'creator',
-        pptId: mode === 'edit' ? pptId : null,
-        lang: 'zh',
-        mode: 'light',
-        isMobile: true,
-        background: '#ffffff',
-        padding: '0',
-        onMessage: function(message) {
-          console.log('DocmeeUI message:', message);
-          if (message.type === 'invalid-token') {
-            console.log('Token 失效');
-            alert('登录已过期，请返回重试');
-          } else if (message.type === 'error') {
-            console.log('错误:', message.data);
-            if (message.data && message.data.message) {
-              alert(message.data.message);
-            }
-          }
-        }
-      });
-
-      // 如果是创建模式且有主题，自动填入主题
-      if (mode === 'create' && subject) {
-        setTimeout(function() {
-          docmeeUI.changeCreatorData && docmeeUI.changeCreatorData({ subject: subject }, false);
-        }, 1000);
-      }
-    } else if (!token) {
-      document.getElementById('ppt-container').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#999;">缺少 token 参数</div>';
-    } else {
-      document.getElementById('ppt-container').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#999;">SDK 加载失败</div>';
+        lang:'zh',mode:'light',isMobile:true,background:'#ffffff',padding:'0',
+        creatorVersion:'v2',
+        onMessage:function(message){console.log('DocmeeUI message:',message)}
+      };
+      if(mode==='edit'&&pptId){config.page='editor';config.pptId=pptId}
+      else if(outline){config.page='creator';config.creatorData={content:outline,type:7}}
+      else{config.page='creator'}
+      try{var ui=new DocmeeUI(config);window.docmeeUI=ui}catch(err){console.error('DocmeeUI 初始化失败:',err);document.getElementById('ppt-container').innerHTML='<div class="loading">初始化失败: '+err.message+'</div>'}
     }
+    var testOutline='# '+(subject||'测试主题')+'\n\n## 1 第一章节\n### 1.1 小节一\n#### 1.1.1 要点一\n#### 1.1.2 要点二\n### 1.2 小节二\n\n## 2 第二章节\n### 2.1 小节一\n### 2.2 小节二\n\n## 3 第三章节\n### 3.1 小节一\n### 3.2 小节二\n';
+    if(mode==='create'){initDocmeeUI(testOutline,templateId)}else{initDocmeeUI(null,null)}
+    window.addEventListener('message',function(e){var d=e&&e.data?e.data:{};if(!d)return;console.log('收到小程序消息:',d);if(d.type==='outline'){var outline=d.outlineMarkdown||'';var tpl=d.templateId||'';initDocmeeUI(outline,tpl)}});
   </script>
 </body>
 </html>
